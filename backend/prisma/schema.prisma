@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model semesters {
+  semester_id         Int       @id @default(autoincrement()) 
+  createdAt           DateTime  @default(now())  
+  semester_year       String    @db.VarChar(64)
+  
+  tasks               tasks[]   @relation("SemesterHasTasks")
+}
+
+model tasks {
+  task_id             Int       @id @default(autoincrement()) 
+  semester_id_fk      Int    
+  createdAt           DateTime  @default(now())  
+  task_title          String 
+  description         String
+  rating_number       Int
+  
+  active              Boolean   @default(false)
+  publish_solutions   Boolean   @default(false)
+  start               DateTime?   
+  due                 DateTime?   
+
+  semester semesters @relation("SemesterHasTasks", fields: [semester_id_fk], references: [semester_id], onDelete: Cascade)
+
+  task_solutions task_solutions[] @relation("TaskHasSolutions")
+}
+
+model task_solutions {
+  task_solution_id    Int       @id @default(autoincrement()) 
+  task_id_fk          Int
+  createdAt           DateTime  @default(now())  
+  user_id_fk          String?     
+  solution            String?
+  rating              Int?
+
+  user users? @relation("UserHasSolutions", fields: [user_id_fk], references: [user_id])
+  task tasks @relation("TaskHasSolutions", fields: [task_id_fk], references: [task_id], onDelete: Cascade)
+}
+
+
+
+
+model user_roles {
+  user_role_id        String    @id @default(cuid()) 
+  roles               String    @db.VarChar(128)
+
+  users               users?    @relation("UserHasRoles")
+}
+
+model user_details {
+  user_detail_id      String    @id @default(cuid()) 
+  email               String    @db.VarChar(255) @unique
+  first_name          String    @db.VarChar(255)
+  last_name           String    @db.VarChar(255)
+
+  study_year          String?   @db.VarChar(255)
+  study_code          String?   @db.VarChar(255)
+  study_program       String?   @db.VarChar(255)
+
+  users               users?    @relation("UserHasDetails")
+}
+
+model users {
+  user_id             String    @id @default(cuid()) 
+  user_detail_fk      String?   
+  user_role_fk        String? 
+  createdAt           DateTime  @default(now()) 
+
+  user_status         Status    @default(STUDENT)
+  user_password       String    @db.VarChar(255)
+
+  user_refresh_token  String?   @unique
+  user_access_token   String?   @unique
+  
+  user_detail user_details? @relation("UserHasDetails", fields:[user_detail_fk], references: [user_detail_id], onDelete: Cascade)
+  user_role user_roles? @relation("UserHasRoles",fields:[user_role_fk], references: [user_role_id], onDelete: Cascade)
+
+  task_solutions task_solutions[] @relation("UserHasSolutions")
+}
+
+
+enum Status {
+  STUDENT
+  PROFESOR
+  ADMIN
+}
